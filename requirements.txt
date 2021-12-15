@@ -6,3 +6,4 @@ flask-classful
 flask-bootstrap
 pyOpenSSL
 pytz
+python-dateutil
