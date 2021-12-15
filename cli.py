@@ -6,7 +6,7 @@ from logging import basicConfig
 
 from dateutil import rrule
 
-from connectors import ImpzentrenBayerConnector
+from connectors import ImpzentrenBayerConnector, FileLoginProvider
 from entities import Appointment
 
 
@@ -15,10 +15,8 @@ def main():
     later = now + timedelta(days=60)
     log = getLogger(__name__).info
     log(f'looking for appointment [{now}] to [{later}]...')
-    with ImpzentrenBayerConnector() as connector:
-        for appointment in set(filter(lambda app: isinstance(app, Appointment),
-                                      map(lambda start_date: connector.get_appointment(start_date.date()),
-                                          rrule.rrule(rrule.DAILY, dtstart=now, until=later)))):
+    with ImpzentrenBayerConnector(FileLoginProvider()) as connector:
+        for appointment in connector.get_appointments_in_range(now, 60):
             log(appointment)
     log('done.')
 

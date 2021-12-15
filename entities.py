@@ -16,7 +16,7 @@ class Appointment:
             return cls(_json['siteId'],
                        datetime.fromisoformat(f'{_json["vaccinationDate"]} {_json["vaccinationTime"]}'))
 
-    def __init__(self, site, date_time):
+    def __init__(self, site:str, date_time:datetime):
         self.date_time = date_time
         self.site = site
 

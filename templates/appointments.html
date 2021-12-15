@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block container %}
+<div class="row">
+    <div class="col-md-4 offset-md-4">
+        {% if error %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>Holy guacamole!</strong>{{error}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+        <div class="login-form bg-light mt-4 p-4">
+            {% if appointments %}
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Site</th>
+                    <th scope="col">Book</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for appointment in appointments %}
+                <tr>
+                    <td>{{appointment.date_time}}</td>
+                    <td>{{appointment.site}}</td>
+                    <td>
+                        <form action="{{ url_for('AppointmentsView:post') }}" method="POST">
+                            <input type="hidden" name="vaccinationDate" value="{{appointment.date_time.date().isoformat()}}">
+                            <input type="hidden" name="vaccinationTime" value="{{appointment.date_time.time().isoformat()}}">
+                            <input type="hidden" name="siteId" value="{{appointment.site}}">
+                            <button type="submit" name="book" value="{{ id }}"
+                                    class="btn btn-dark float-end">Book
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <h2>no appointments available</h2>
+            <button onClick="window.location.reload();" class="btn btn-dark float-end">Refresh Page</button>
+            {% endif %}
+            <div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

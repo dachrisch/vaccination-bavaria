@@ -1,3 +1,8 @@
 beautifulsoup4==4.10.0
 more-itertools==8.12.0
 requests==2.26.0
+flask
+flask-classful
+flask-bootstrap
+pyOpenSSL
+pytz
