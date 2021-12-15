@@ -7,7 +7,7 @@ from connectors import ImpzentrenBayerConnector
 from entities import Appointment
 
 
-class TestResponse(Response):
+class ResponseFixture(Response):
     def __init__(self, status_code, text):
         super().__init__()
         self._text = text
@@ -24,12 +24,12 @@ class MyTestCase(unittest.TestCase):
         connector._auth_code = 'test code'
         fixture = {
             'https://ciam.impfzentren.bayern/auth/realms/C19V-Citizen/protocol/openid-connect/token':
-                TestResponse(200,
+                ResponseFixture(200,
                              '{"token_type" : "Bearer", "access_token" : "test token"}'),
             'https://impfzentren.bayern/api/v1/users/current/citizens':
-                TestResponse(200, '[{"id" : "citizen_id"}]'),
+                ResponseFixture(200, '[{"id" : "citizen_id"}]'),
             'https://impfzentren.bayern/api/v1/citizens/citizen_id/appointments/next':
-                TestResponse(200,
+                ResponseFixture(200,
                              '{"siteId" : "site id", "vaccinationDate" : "2021-12-13", "vaccinationTime" : "15:00"}')
         }
         connector._session.get = lambda url, params: fixture[url]
