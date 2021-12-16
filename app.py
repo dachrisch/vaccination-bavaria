@@ -15,5 +15,13 @@ def run_flask():
     app.run(debug=True, ssl_context='adhoc')
 
 
+def run_waitress():
+    app = create_app()
+
+    basicConfig(level=logging.INFO)
+    getLogger(ImpzentrenBayerConnector.__name__).setLevel(logging.DEBUG)
+    return app
+
+
 if __name__ == '__main__':
     run_flask()

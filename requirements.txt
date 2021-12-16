@@ -7,3 +7,4 @@ flask-bootstrap
 pyOpenSSL
 pytz
 python-dateutil
+waitress
