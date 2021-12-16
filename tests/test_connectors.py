@@ -4,7 +4,7 @@ from datetime import date, datetime
 from requests import Response
 
 from connectors import ImpzentrenBayerConnector, FileLoginProvider, LoginProvider, LoginError, \
-    InvalidCredentialsException
+    InvalidCredentialsException, AuthenticationRefreshNeededException
 from entities import Appointment
 
 
@@ -46,7 +46,7 @@ class ImpzentrenBayerConnectorTest(unittest.TestCase):
             ResponseFixture(200, '')
         }
         self.connector._session.get = lambda url, params: self.fixture[url]
-        self.connector._session.post = lambda url, data: self.fixture[url]
+        self.connector._session.post = lambda url, data=None, json=None: self.fixture[url]
 
     def test_raises_login_error(self):
         self.fixture['http://test.login'] = ResponseFixture(200, '<div class="alert alert-error">')
@@ -60,6 +60,11 @@ class ImpzentrenBayerConnectorTest(unittest.TestCase):
                                                             f'{self.connector.INVALID_CREDENTIALS_TEXT}')
         with self.assertRaises(InvalidCredentialsException) as e:
             self.connector.authenticate_session()
+
+    def test_raises_expired_auth(self):
+        self.fixture['https://impfzentren.bayern/api/v1/citizens/citizen_id/appointments/next'].status_code=401
+        with self.assertRaises(AuthenticationRefreshNeededException) as e:
+            self.connector.get_next_appointment(date(2021, 12, 12))
 
     def test_get_appointment(self):
         self.assertEqual(Appointment('site id', datetime(2021, 12, 13, 15, 00, 00)),

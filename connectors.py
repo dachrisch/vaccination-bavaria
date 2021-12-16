@@ -17,13 +17,18 @@ from requests import Session
 from entities import Appointment
 
 
-class InvalidCredentialsException(BaseException):
+class InvalidCredentialsException(Exception):
     pass
 
 
-class LoginError(BaseException):
+class LoginError(Exception):
     def __init__(self, error):
         self.error = error
+
+
+class AuthenticationRefreshNeededException(Exception):
+    def __init__(self, response):
+        self.response = response
 
 
 class LoginProvider(ABC):
@@ -106,7 +111,7 @@ class ImpzentrenBayerConnector:
     def _login(self):
         login_json = self.login_provider.get_login_json()
         response = self._session.post(self._login_link, data=login_json)
-        assert response.status_code == 200
+        assert response.status_code == 200, response.text
         soup = BeautifulSoup(response.text, features='html.parser')
         errors = soup.find_all('div', {'class': 'alert alert-error'})
         feedback = soup.find('span', {'class': 'kc-feedback-text'})
@@ -142,8 +147,8 @@ class ImpzentrenBayerConnector:
         book_data = self._book_json(appointment)
         response = self._session.post(
             f'{self.VACCINATE_API_URL}/citizens/{self.citizen["id"]}/appointments/',
-            data=book_data)
-        assert 200 == response.status_code
+            json=book_data)
+        assert 200 == response.status_code, response.text
 
     def _book_json(self, appointment):
         homezone = timezone('Europe/Berlin')
@@ -151,7 +156,7 @@ class ImpzentrenBayerConnector:
             "siteId": appointment.site,
             "vaccinationDate": appointment.date_time.date().isoformat(),
             "vaccinationTime": appointment.date_time.time().isoformat('minutes'),
-            "zoneOffset": f'+{homezone.utcoffset(appointment.date_time).seconds/3600:02.0f}:00',
+            "zoneOffset": f'+{homezone.utcoffset(appointment.date_time).seconds / 3600:02.0f}:00',
             "reminderChannel": {
                 "reminderBySms": True,
                 "reminderByEmail": True
@@ -168,7 +173,9 @@ class ImpzentrenBayerConnector:
 
     def _get(self, url, params=None, allowed_return=(200,)):
         response = self._session.get(url, params=params)
-        assert response.status_code in allowed_return, response.text
+        if response.status_code not in allowed_return:
+            if 401 == response.status_code:
+                raise AuthenticationRefreshNeededException(response)
         return response
 
     def authenticate_session(self):
