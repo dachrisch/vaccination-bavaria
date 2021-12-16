@@ -15,7 +15,7 @@ def run_flask():
     app.run(debug=True, ssl_context='adhoc')
 
 
-def run_waitress():
+def run_waitress(*args,**kwargs):
     app = create_app()
 
     basicConfig(level=logging.INFO)
