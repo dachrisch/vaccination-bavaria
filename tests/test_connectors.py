@@ -47,7 +47,10 @@ class ImpzentrenBayerConnectorTest(unittest.TestCase):
                                 '{"siteId" : "site id", "vaccinationDate" : "2021-12-13", "vaccinationTime" : "15:00"}'),
             'https://impfzentren.bayern/api/v1/citizens/citizen_id/appointments/':
                 ResponseFixture(200,
-                                '{"futureAppointments":[{"siteId" : "site id", "vaccinationDate" : "2021-12-13", "vaccinationTime" : "15:00"}]}')
+                                '{"futureAppointments":'
+                                '[{"slotId":{"siteId" : "site id", '
+                                '"date" : "2021-12-13", '
+                                '"time" : "15:00"}}]}')
         }
         self.connector._session.get = lambda url, params: self.fixture[url]
         self.connector._session.post = lambda url, data=None, json=None: self.fixture[url]
@@ -98,9 +101,11 @@ class ImpzentrenBayerConnectorTest(unittest.TestCase):
         self.fixture['https://impfzentren.bayern/api/v1/citizens/citizen_id/appointments/'] = ResponseFixture(200,
                                                                                                               '{"futureAppointments":[],"pastAppointments":[]}')
 
+        self.assertFalse(self.connector.has_next_appointment())
         self.assertEqual(Appointment.no_appointment(), self.connector.get_current_appointment())
 
     def test_has_current_appointment(self):
+        self.assertTrue(self.connector.has_next_appointment())
         self.assertEqual(Appointment('site id', datetime(2021, 12, 13, 15, 00, 00)),
                          self.connector.get_current_appointment())
 

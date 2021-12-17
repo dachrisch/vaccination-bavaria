@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from more_itertools import only
+
 
 class Appointment:
 
@@ -32,6 +34,15 @@ class Appointment:
 
     def __hash__(self):
         return hash(tuple(map(lambda item: (item[0], item[1]), self.__dict__.items())))
+
+    @classmethod
+    def from_future_json(cls, json_appointment):
+        assert 'futureAppointments' in json_appointment
+        slot_json = only(json_appointment['futureAppointments'], {}).get('slotId')
+        if slot_json:
+            return cls(slot_json['siteId'],datetime.fromisoformat(f'{slot_json["date"]} {slot_json["time"]}'))
+        else:
+            return cls.no_appointment()
 
 
 class NoAppointment(Appointment):

@@ -143,7 +143,7 @@ class ImpzentrenBayerConnector:
     def get_current_appointment(self) -> Type[Appointment]:
         self.authenticate_session()
         response = self._get(f'{self.VACCINATE_API_URL}/citizens/{self.citizen["id"]}/appointments/')
-        appointment = Appointment.from_json(only(response.json()['futureAppointments'], ()))
+        appointment = Appointment.from_future_json(response.json())
         self.debug(f'currently {appointment}')
         return appointment
 

@@ -13,6 +13,8 @@ class AppointmentsView(FlaskView, WithConnector):
 
     def index(self):
         try:
+            if self.connector.has_next_appointment():
+                return f'already has an appointment {self.connector.get_current_appointment()}'
             appointments = self.connector.get_appointments_in_range(datetime.now().date(), days=30)
             return render_template('appointments.html', appointments=appointments)
         except InvalidCredentialsException:
