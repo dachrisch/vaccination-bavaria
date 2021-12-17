@@ -5,16 +5,16 @@ from abc import ABC, abstractmethod
 from datetime import date, timedelta
 from functools import cached_property
 from logging import getLogger
-from typing import Set
+from typing import Set, Type
 from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
 from dateutil import rrule
-from more_itertools import one
+from more_itertools import one, only
 from pytz import timezone
 from requests import Session
 
-from entities import Appointment
+from entities import Appointment, NoAppointment
 
 
 class InvalidCredentialsException(Exception):
@@ -96,22 +96,20 @@ class ImpzentrenBayerConnector:
 
     @cached_property
     def _auth_header(self):
-        response = self._session.post(f'{self.OPENID_CONNECT_URL}/token',
+        response = self._post(f'{self.OPENID_CONNECT_URL}/token',
                                       data={
                                           'code': self._auth_code,
                                           'grant_type': 'authorization_code',
                                           'client_id': 'c19v-frontend',
                                           'redirect_uri': 'https://impfzentren.bayern/citizen/'
                                       })
-        assert response.status_code == 200, response.text
         authentication = json.loads(response.text)
         assert 'Bearer' == authentication['token_type']
         return {'Authorization': f"Bearer {authentication['access_token']}"}
 
     def _login(self):
         login_json = self.login_provider.get_login_json()
-        response = self._session.post(self._login_link, data=login_json)
-        assert response.status_code == 200, response.text
+        response = self._post(self._login_link, data=login_json)
         soup = BeautifulSoup(response.text, features='html.parser')
         errors = soup.find_all('div', {'class': 'alert alert-error'})
         feedback = soup.find('span', {'class': 'kc-feedback-text'})
@@ -131,24 +129,33 @@ class ImpzentrenBayerConnector:
         self.debug(f'using citizen [{citizen_json["id"]}]')
         return citizen_json
 
-    def get_next_appointment(self, first_day: date) -> Appointment:
+    def get_next_appointment(self, first_day: date) -> Type[Appointment]:
         self.authenticate_session()
         response = self._get(f'{self.VACCINATE_API_URL}/citizens/{self.citizen["id"]}/appointments/next',
                              params={'timeOfDay': 'ALL_DAY',
                                      'lastDate': first_day.strftime("%Y-%m-%d"),
                                      'lastTime': '00:00'},
-                             allowed_return=(200, 404))
+                             allowed_returns=(200, 404))
         appointment = Appointment.from_json(response.json())
         self.debug(f'found [{appointment}] for day [{first_day}]')
         return appointment
 
+    def get_current_appointment(self) -> Type[Appointment]:
+        self.authenticate_session()
+        response = self._get(f'{self.VACCINATE_API_URL}/citizens/{self.citizen["id"]}/appointments/')
+        appointment = Appointment.from_json(only(response.json()['futureAppointments'], ()))
+        self.debug(f'currently {appointment}')
+        return appointment
+
+    def has_next_appointment(self)->bool:
+        return not isinstance(self.get_current_appointment(),NoAppointment)
+
     def book_appointment(self, appointment: Appointment):
         self.authenticate_session()
         book_data = self._book_json(appointment)
-        response = self._session.post(
+        response = self._post(
             f'{self.VACCINATE_API_URL}/citizens/{self.citizen["id"]}/appointments/',
             json=book_data)
-        assert 200 == response.status_code, response.text
 
     def _book_json(self, appointment):
         homezone = timezone('Europe/Berlin')
@@ -164,18 +171,23 @@ class ImpzentrenBayerConnector:
         }
         return book_data
 
-    def get_appointments_in_range(self, first_day: date, days=1) -> Set[Appointment]:
+    def get_appointments_in_range(self, first_day: date, days=1) -> Set[Type[Appointment]]:
         now = first_day
         later = now + timedelta(days=days)
-        return set(filter(lambda app: isinstance(app, Appointment),
+        return set(filter(lambda app: app.__class__== Appointment,
                           map(lambda start_date: self.get_next_appointment(start_date.date()),
                               rrule.rrule(rrule.DAILY, dtstart=now, until=later))))
 
-    def _get(self, url, params=None, allowed_return=(200,)):
+    def _get(self, url, params=None, allowed_returns=(200,)):
         response = self._session.get(url, params=params)
-        if response.status_code not in allowed_return:
+        if response.status_code not in allowed_returns:
             if 401 == response.status_code:
                 raise AuthenticationRefreshNeededException(response)
+        return response
+
+    def _post(self, url, allowed_returns=(), **kwargs):
+        response = self._session.post(url, **kwargs)
+        assert response.status_code not in allowed_returns, response.text
         return response
 
     def authenticate_session(self):

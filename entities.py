@@ -4,19 +4,20 @@ from datetime import datetime
 
 
 class Appointment:
-    class NoAppointment:
-        def __eq__(self, other):
-            return type(other) is type(self)
+
+    @classmethod
+    def no_appointment(cls):
+        return NoAppointment()
 
     @classmethod
     def from_json(cls, _json):
         if 'siteId' not in _json:
-            return Appointment.NoAppointment
+            return cls.no_appointment()
         else:
             return cls(_json['siteId'],
                        datetime.fromisoformat(f'{_json["vaccinationDate"]} {_json["vaccinationTime"]}'))
 
-    def __init__(self, site:str, date_time:datetime):
+    def __init__(self, site: str, date_time: datetime):
         self.date_time = date_time
         self.site = site
 
@@ -31,3 +32,11 @@ class Appointment:
 
     def __hash__(self):
         return hash(tuple(map(lambda item: (item[0], item[1]), self.__dict__.items())))
+
+
+class NoAppointment(Appointment):
+    def __init__(self):
+        super().__init__('None', datetime(1970, 1, 1, 0, 0, 0))
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}()'

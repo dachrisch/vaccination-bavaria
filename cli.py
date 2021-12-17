@@ -16,8 +16,11 @@ def main():
     log = getLogger(__name__).info
     log(f'looking for appointment [{now}] to [{later}]...')
     with ImpzentrenBayerConnector(FileLoginProvider()) as connector:
-        for appointment in connector.get_appointments_in_range(now, 60):
-            log(appointment)
+        if connector.has_next_appointment():
+            log(f'your next appointment is {connector.get_current_appointment()}')
+        else:
+            for appointment in connector.get_appointments_in_range(now, 60):
+                log(appointment)
     log('done.')
 
 
