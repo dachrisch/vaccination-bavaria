@@ -17,6 +17,7 @@ def run_waitress(*args,**kwargs):
     app = create_app()
 
     basicConfig(level=logging.INFO)
+    getLogger(ImpzentrenBayernConnector.__name__).setLevel(logging.INFO)
     return app
 
 
