@@ -12,8 +12,8 @@ from web.views.base import WithService
 class AppointmentsView(FlaskView, WithService):
 
     def index(self):
-        authentication = self._get_auth_from_session()
         try:
+            authentication = self._get_auth_from_session()
             if self.service.has_next_appointment(authentication):
                 return f'already has an appointment {self.service.current_appointment(authentication)}'
             appointments = self.service.appointments_in_range(authentication, datetime.now().date(), days=30)
@@ -23,9 +23,14 @@ class AppointmentsView(FlaskView, WithService):
 
     def post(self):
         appointment = Appointment.from_json(request.form)
-        self.service.book_appointment(self._get_auth_from_session(), appointment)
-        return f'booked {appointment}'
+        try:
+            self.service.book_appointment(self._get_auth_from_session(), appointment)
+            return f'booked {appointment}'
+        except InvalidCredentialsException:
+            return redirect(url_for('HomeView:index'))
 
     def _get_auth_from_session(self):
+        if 'auth' not in session:
+            raise InvalidCredentialsException()
         authentication = Authentication.from_session(session['auth'])
         return authentication
