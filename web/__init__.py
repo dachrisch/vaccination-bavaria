@@ -1,8 +1,6 @@
 import os
 
-import flask
 from flask import Flask
-from flask_bootstrap import Bootstrap
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from web.views import add_views

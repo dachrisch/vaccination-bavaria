@@ -4,10 +4,9 @@ from logging import getLogger
 from datetime import datetime, timedelta
 from logging import basicConfig
 
-from dateutil import rrule
-
-from connectors import ImpzentrenBayerConnector, FileLoginProvider
-from entities import Appointment
+from vaccination.connectors import ImpzentrenBayernConnector
+from vaccination.login import FileLoginProvider
+from vaccination.services import VaccinationAppointmentService
 
 
 def main():
@@ -15,16 +14,17 @@ def main():
     later = now + timedelta(days=60)
     log = getLogger(__name__).info
     log(f'looking for appointment [{now}] to [{later}]...')
-    with ImpzentrenBayerConnector(FileLoginProvider()) as connector:
-        if connector.has_next_appointment():
-            log(f'your next appointment is {connector.get_current_appointment()}')
-        else:
-            for appointment in connector.get_appointments_in_range(now, 60):
-                log(appointment)
+    service = VaccinationAppointmentService(ImpzentrenBayernConnector)
+    authentication = service.authentication(FileLoginProvider())
+    if service.has_next_appointment(authentication):
+        log(f'your next appointment is {service.current_appointment(authentication)}')
+    else:
+        for appointment in service.appointments_in_range(authentication, now, 60):
+            log(appointment)
     log('done.')
 
 
 if __name__ == '__main__':
     basicConfig(level=logging.INFO)
-    getLogger(ImpzentrenBayerConnector.__name__).setLevel(logging.DEBUG)
+    getLogger(ImpzentrenBayernConnector.__name__).setLevel(logging.DEBUG)
     main()

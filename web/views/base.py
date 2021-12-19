@@ -1,5 +1,11 @@
-from connectors import UsernamePasswordLoginProvider, ImpzentrenBayerConnector
+from flask import g
+
+from vaccination.connectors import ImpzentrenBayernConnector
+from vaccination.login import UsernamePasswordLoginProvider
+from vaccination.services import VaccinationAppointmentService
 
 
-class WithConnector:
-    connector = ImpzentrenBayerConnector(UsernamePasswordLoginProvider())
+class WithService:
+    def __init__(self):
+        self.service = VaccinationAppointmentService(ImpzentrenBayernConnector)
+

@@ -1,22 +1,26 @@
-from datetime import datetime
-
-from flask import render_template, url_for, request
+from flask import render_template, url_for, request, session
 from flask_classful import FlaskView
 from werkzeug.utils import redirect
 
-from connectors import ImpzentrenBayerConnector, UsernamePasswordLoginProvider, InvalidCredentialsException
-from web.views.base import WithConnector
+from vaccination.connectors import InvalidCredentialsException
+from vaccination.login import UsernamePasswordLoginProvider
+from web.views.base import WithService
 
 
-class HomeView(FlaskView, WithConnector):
+class HomeView(FlaskView, WithService):
     route_base = '/'
+
+    def __init__(self):
+        super().__init__()
+        self.login_provider = UsernamePasswordLoginProvider()
 
     def post(self):
         username = request.form['username']
         password = request.form['password']
-        self.connector.login_provider.provide(username, password)
+        self.login_provider.provide(username, password)
         try:
-            self.connector.authenticate_session()
+            authentication = self.service.authentication(self.login_provider)
+            session['auth'] = authentication.access_token
             return redirect(url_for('AppointmentsView:index'))
         except InvalidCredentialsException:
             return render_template('home.html', error='invalid credentials')

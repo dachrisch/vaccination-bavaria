@@ -1,17 +1,15 @@
 import logging
 from logging import basicConfig
 from logging import getLogger
-from flask import url_for
-from flask_bootstrap import bootstrap_find_resource, WebCDN, StaticCDN, ConditionalCDN
 
-from connectors import ImpzentrenBayerConnector
+from vaccination.connectors import ImpzentrenBayernConnector
 from web import create_app
 
 
 def run_flask():
     app = create_app()
     basicConfig(level=logging.INFO)
-    getLogger(ImpzentrenBayerConnector.__name__).setLevel(logging.DEBUG)
+    getLogger(ImpzentrenBayernConnector.__name__).setLevel(logging.DEBUG)
     app.run(debug=True, ssl_context='adhoc')
 
 
@@ -19,7 +17,7 @@ def run_waitress(*args,**kwargs):
     app = create_app()
 
     basicConfig(level=logging.INFO)
-    getLogger(ImpzentrenBayerConnector.__name__).setLevel(logging.DEBUG)
+    getLogger(ImpzentrenBayernConnector.__name__).setLevel(logging.DEBUG)
     return app
 
 
